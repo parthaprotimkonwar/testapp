@@ -1,0 +1,190 @@
+<html ng-app>
+<head>
+
+<script src="http://code.angularjs.org/angular-1.0.1.js"></script>
+
+<script>
+window.fbAsyncInit = function()
+{
+    FB.init(
+    {
+        appId: '354798294692846',
+        xfbml: true,
+        version: 'v2.2'
+    });
+};
+
+(function(d, s, id)
+{
+    var js, fjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id))
+    {
+        return;
+    }
+    js = d.createElement(s);
+    js.id = id;
+    js.src = "https://connect.facebook.net/en_US/sdk.js";
+    fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+
+angular.module('testApp', []).config(function($httpProvider)
+{
+    $httpProvider.defaults.useXDomain = true;
+    $httpProvider.defaults.withCredentials = true;
+    delete $httpProvider.defaults.headers.common["X-Requested-With"];
+});
+
+function fbCtrl($scope, $http)
+{
+
+    $scope.showFeed = false;
+    $scope.showGroupList = false;
+
+    $scope.fbGetGroups = function()
+
+    {
+
+
+        FB.login(function(response)
+        {
+            if (response.authResponse)
+            {
+                console.log('Welcome!  Fetching your information.... ');
+                var access_token = FB.getAuthResponse()['accessToken'];
+                console.log('Access Token = ' + access_token);
+
+				debugger;
+
+                FB.api(
+                    "/me/groups",
+                    function(response)
+                    {
+                        if (response && !response.error)
+                        {
+                        	debugger;
+                        	console.log('Groups = ' + JSON.stringify(response));
+                            $scope.groupList = response.data;
+                            $scope.showGroupList = true;
+                            $scope.$apply();
+                        }
+                    }
+                );
+                
+                FB.api('/me', function(response)
+                        {
+                            console.log('Good to see you, ' + response.name + '.');
+                        });
+
+            }
+        },
+        {
+            scope: 'manage_pages,publish_stream,user_groups,publish_actions'
+        });
+
+    }
+
+    $scope.fbLogin = function()
+
+    {
+
+		
+
+        FB.login(function(response)
+        {
+        	var groupItem = new Array();
+            if (response.authResponse)
+            {
+                console.log('Welcome!  Fetching your information.... ');
+                var access_token = FB.getAuthResponse()['accessToken'];
+                console.log('Access Token = ' + access_token);
+                
+                var k = 0;
+                var inputElements = document.getElementsByClassName('checkBox');
+                for(var i=0; inputElements[i]; i++){
+                      if(inputElements[i].checked){
+                    	  groupItem[k++]=inputElements[i].value;
+                         
+                      }
+                }
+               
+                debugger;
+                for (var i=0;i<groupItem.length;i++ )
+                {
+                	
+                    
+                	// Closure with new scope establishing a new variable
+                	  (function() {
+                	    var index = i; // new variable
+                	    FB.api('/' +groupItem[index] + '/feed', function(response)
+                                {
+                                    console.log('Page Feed = ' + JSON.stringify(response));
+                                    debugger;
+                                    if($scope.groupFeed != undefined)
+                                    $scope.groupFeed = ($scope.groupFeed).concat(response.data);
+                                    else
+                                    $scope.groupFeed = response.data;	
+                                    $scope.showFeed = true;
+                                   
+                                   
+                                    $scope.$apply();
+                                });
+                	  })();
+                	
+                	
+                	
+                	
+
+                }
+
+
+
+
+             
+            }
+            else
+            {
+                console.log('User cancelled login or did not fully authorize.');
+            }
+
+
+
+
+        },
+        {
+            scope: 'manage_pages,publish_stream,user_groups,publish_actions'
+        });
+
+
+
+    }
+}  
+</script>
+
+</head>
+
+<div  ng-init="qty=1;cost=2">
+<div ng-controller="fbCtrl">
+  <b>Invoice:</b>
+  <div>
+    Quantity: <input type="number" ng-model="qty" required >
+  </div>
+  <div>
+    Costs: <input type="number" ng-model="cost" required >
+  </div>
+  <div>
+    <b>Total:</b> {{qty * cost | currency}}
+  </div>
+  <span id="fb" ng-click="fbGetGroups();" style="cursor:pointer;color:blue;font-weight:bold;">Get Groups List</span>
+  
+  <br/>
+   <div ng-show="showGroupList" ng-repeat="group in groupList">{{group.name}}<input class="checkBox" type="checkbox" name="groups" value="{{group.id}}"  /></div>
+   <span id="fbGet" ng-show="showGroupList" ng-click="fbLogin();" style="cursor:pointer;color:blue;font-weight:bold;">Get Feeds</span>
+  <hr/>
+  <table id="dataFetched" ng-show="showFeed">
+  <th>Name</th><th>Message</th><th>Time</th>
+  <tr ng-repeat="data in groupFeed" ><td>{{data.from.name}}</td><td style="color:blue;font-weight:bold;">{{data.message}}</td><td>{{data.created_time}}</td></tr>
+  </table>
+</div>
+</div>
+
+</html>
